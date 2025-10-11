@@ -33,6 +33,7 @@ if __name__ == "__main__":
     wandb.init(
         project="dart_eval_task1",
         name="zero_shot_caduceus",
+        entity="RNALM",
         config={
             "model_name": model_name,
             "task": "task_1",
