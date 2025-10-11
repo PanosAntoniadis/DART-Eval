@@ -1,0 +1,25 @@
+#!/bin/bash
+#SBATCH -p gpu
+#SBATCH --job-name=dart_eval
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=8
+#SBATCH --time=48:00:00
+#SBATCH --gres gpu:a100:1
+#SBATCH --mem=100G
+#SBATCH --output=/home/vqj407/workspace/DART-Eval/outputs/slurm_logs/%j.out
+
+bash /home/vqj407/workspace/mount_scripts/unmount_rnalm.sh
+sleep 2
+bash /home/vqj407/workspace/mount_scripts/mount_rnalm.sh
+sleep 2
+
+source activate rnalm
+cd /home/vqj407/workspace/DART-Eval/src
+
+export CUDA_LAUNCH_BLOCKING=1 
+export DART_WORK_DIR="/tmp/vqj407/rnalm_erda/dart_eval"
+export MODEL="caduceus"
+
+python -m dnalm_bench.task_1_paired_control.zero_shot.encode_ccre.$MODEL
+
+bash /home/vqj407/workspace/mount_scripts/unmount_rnalm.sh
