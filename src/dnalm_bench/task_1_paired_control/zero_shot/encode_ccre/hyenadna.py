@@ -1,4 +1,5 @@
 import os
+import wandb
 
 from ..evaluators import PairedControlDataset, HDEvaluator
 
@@ -23,10 +24,28 @@ if __name__ == "__main__":
         "chr22"
     ]
 
-    batch_size = 4096
+    batch_size = 512
     num_workers = 4
     seed = 0
     device = "cuda"
+    
+    # Initialize wandb
+    wandb.init(
+        project="dart_eval_task1",
+        name="zero_shot_hyenadna",
+        entity="RNALM",
+        dir="outputs/wandb",
+        config={
+            "model_name": model_name,
+            "task": "task_1",
+            "approach": "zero_shot",
+            "batch_size": batch_size,
+            "num_workers": num_workers,
+            "seed": seed,
+            "device": device,
+            "chroms": chroms,
+        }
+    )
 
     dataset = PairedControlDataset(genome_fa, elements_tsv, chroms, seed)
     evaluator = HDEvaluator(model_name, dataset, batch_size, num_workers, device)
@@ -34,3 +53,7 @@ if __name__ == "__main__":
 
     for k, v in metrics.items():
         print(f"{k}: {v}")
+
+    wandb.log(metrics)
+
+    wandb.finish()
