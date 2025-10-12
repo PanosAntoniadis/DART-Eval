@@ -34,6 +34,7 @@ if __name__ == "__main__":
         project="dart_eval_task1",
         name="zero_shot_caduceus",
         entity="RNALM",
+        dir="outputs/wandb",
         config={
             "model_name": model_name,
             "task": "task_1",
