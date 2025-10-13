@@ -1,5 +1,6 @@
 import os
 import sys
+import wandb
 
 from ....embeddings import HyenaDNAEmbeddingExtractor
 from ....components import SimpleSequence
@@ -15,9 +16,28 @@ if __name__ == "__main__":
     num_workers = 0
     seed = 0
     device = "cuda"
+    
+    wandb.init(
+        project="dart_eval_task3",
+        name="extract_embeddings_hyenadna",
+        entity="RNALM",
+        dir="outputs/wandb",
+        config={
+            "model_name": model_name,
+            "task": "task_3",
+            "approach": "extract_embeddings",
+            "batch_size": batch_size,
+            "num_workers": num_workers,
+            "seed": seed,
+            "device": device,
+            "chroms": chroms,
+        }
+    )
 
     out_path = os.path.join(root_output_dir,f"task_3_peak_classification/embeddings/{model_name}.h5")
 
     dataset = SimpleSequence(genome_fa, elements_tsv, chroms, seed)
     extractor = HyenaDNAEmbeddingExtractor(model_name, batch_size, num_workers, device)
     extractor.extract_embeddings(dataset, out_path, progress_bar=True)
+
+    wandb.finish()
