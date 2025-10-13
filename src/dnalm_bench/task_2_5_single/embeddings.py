@@ -9,9 +9,12 @@ from transformers import AutoTokenizer, AutoModelForMaskedLM, AutoModel, AutoMod
 from scipy.stats import wilcoxon
 from tqdm import tqdm
 import h5py
-from ..embeddings import HFEmbeddingExtractor, SequenceBaselineEmbeddingExtractor
+from ..embeddings import HFEmbeddingExtractor, SequenceBaselineEmbeddingExtractor, EmbeddingExtractor
 from ..utils import onehot_to_chars, NoModule
-
+from pathlib import Path
+import yaml
+import hydra
+from rnalm.models import MaskedLM
 
 
 class SimpleEmbeddingExtractor:
@@ -184,6 +187,88 @@ class NucleotideTransformerEmbeddingExtractor(HFEmbeddingExtractor, SimpleEmbedd
 
         return inds
 
+
+class RNALMEmbeddingExtractor(EmbeddingExtractor, SimpleEmbeddingExtractor):
+    def __init__(self, output_dir, checkpoint_path, use_metadata, 
+                 tokenizer_path, batch_size, num_workers, device):
+        self.load_model(output_dir, checkpoint_path)
+        if use_metadata is False:
+            print('set use_metadata false')
+            self.model.use_metadata = False
+        if use_metadata is True:
+            print('set use_metadata true')
+            self.model.use_metadata = True
+
+        self.model.to(device)
+        self.model.eval()
+        self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)
+
+    def load_model(self, output_dir, checkpoint_path):
+        config_path = Path(output_dir) / ".hydra/config.yaml"
+        with open(config_path) as f:
+            config = yaml.safe_load(f)
+            model_config = config["model"]["network"]
+
+        model_raw = hydra.utils.instantiate(model_config)
+        # check if checkpoint paths is dir
+        if checkpoint_path is None or checkpoint_path == 'last':
+            checkpoint_path = Path(output_dir) / "checkpoints/last.ckpt"
+            print('Loading last checkpoint')
+        elif checkpoint_path == "best":
+            # pick the one only starting with step_*
+            checkpoint_path = Path(output_dir) / "checkpoints"
+            checkpoint_path = sorted(
+                Path(checkpoint_path).glob("step_*.ckpt"),
+                key=lambda x: int(x.stem.split("_")[1]),
+            )[-1]
+            print(f"Loading best checkpoint {checkpoint_path}")
+        checkpoint = str(checkpoint_path).split("/")[-1]
+        print('Checkpoint loaded', checkpoint)
+        if Path(checkpoint_path).is_dir():
+            # check if the converted checkpoint exists
+            save_path = Path(checkpoint_path) / 'lightning_model.pt'
+            if not save_path.exists():
+                raise FileNotFoundError(f"Checkpoint {save_path} not found")
+            checkpoint_path = save_path
+        print('LOAD MODEL----------------------------------------')
+        pl_module = MaskedLM.load_from_checkpoint(
+            checkpoint_path,
+            network=model_raw,
+            mlm_criterion=None,
+            track_criterion=None,
+        )
+        self.model = pl_module.network
+
+    def tokenize(self, seqs):
+        seqs_str = onehot_to_chars(seqs)
+        encoded = self.tokenizer(
+                    seqs_str,
+                    return_tensors="pt",
+                    padding=True,
+                )
+        tokens = encoded["input_ids"]
+
+        return tokens, None
+
+    def model_fwd(self, tokens):
+        tax = None
+        if self.model.use_taxonomy:
+            tax = torch.tensor([2317, 2318, 2319, 2266, 2248, 2072, 2053, 1875]).to(self.device)
+        tokens = tokens.to(device=self.device)
+        with torch.no_grad():
+            torch_outs = self.model(
+                tokens,
+                masked_taxonomy=tax,
+            )
+            embs = torch_outs.last_hidden_state
+        return embs
+
+    @staticmethod
+    def _offsets_to_indices(offsets, seqs):
+        slice_idx = [0, seqs.shape[1]]
+        
+        return np.array(slice_idx)
+    
 class HyenaDNAEmbeddingExtractor(HFEmbeddingExtractor, SimpleEmbeddingExtractor):
     _idx_mode = "fixed"
 
