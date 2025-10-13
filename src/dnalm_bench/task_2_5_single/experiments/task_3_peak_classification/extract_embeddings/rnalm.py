@@ -7,6 +7,7 @@ from ....components import SimpleSequence
 root_output_dir = os.environ.get("DART_WORK_DIR", "")
 
 if __name__ == "__main__":
+    model_name = "rnalm"
     output_dir = "/tmp/vqj407/rnalm_erda/gefion_output/outputs/mlm_track_metadata/runs/2025-07-15_11-11-12_144M_fukushima_w_taxonomy_no_tax_loss_resume"
     checkpoint_path = "best"
     use_metadata = False

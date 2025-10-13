@@ -189,8 +189,11 @@ class NucleotideTransformerEmbeddingExtractor(HFEmbeddingExtractor, SimpleEmbedd
 
 
 class RNALMEmbeddingExtractor(EmbeddingExtractor, SimpleEmbeddingExtractor):
+    _idx_mode = "fixed"
+    
     def __init__(self, output_dir, checkpoint_path, use_metadata, 
                  tokenizer_path, batch_size, num_workers, device):
+        torch.set_float32_matmul_precision('high')
         self.load_model(output_dir, checkpoint_path)
         if use_metadata is False:
             print('set use_metadata false')
@@ -202,6 +205,9 @@ class RNALMEmbeddingExtractor(EmbeddingExtractor, SimpleEmbeddingExtractor):
         self.model.to(device)
         self.model.eval()
         self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)
+        self.taxonomy = torch.tensor([2317, 2318, 2319, 2266, 2248, 2072, 2053, 1875]*batch_size).to(device)
+
+        super().__init__(batch_size, num_workers, device)
 
     def load_model(self, output_dir, checkpoint_path):
         config_path = Path(output_dir) / ".hydra/config.yaml"
@@ -238,6 +244,7 @@ class RNALMEmbeddingExtractor(EmbeddingExtractor, SimpleEmbeddingExtractor):
             track_criterion=None,
         )
         self.model = pl_module.network
+        
 
     def tokenize(self, seqs):
         seqs_str = onehot_to_chars(seqs)
@@ -253,7 +260,7 @@ class RNALMEmbeddingExtractor(EmbeddingExtractor, SimpleEmbeddingExtractor):
     def model_fwd(self, tokens):
         tax = None
         if self.model.use_taxonomy:
-            tax = torch.tensor([2317, 2318, 2319, 2266, 2248, 2072, 2053, 1875]).to(self.device)
+            tax = self.taxonomy
         tokens = tokens.to(device=self.device)
         with torch.no_grad():
             torch_outs = self.model(
@@ -261,6 +268,8 @@ class RNALMEmbeddingExtractor(EmbeddingExtractor, SimpleEmbeddingExtractor):
                 masked_taxonomy=tax,
             )
             embs = torch_outs.last_hidden_state
+            if self.model.use_taxonomy:
+                embs = embs[:, 1:, :] 
         return embs
 
     @staticmethod
