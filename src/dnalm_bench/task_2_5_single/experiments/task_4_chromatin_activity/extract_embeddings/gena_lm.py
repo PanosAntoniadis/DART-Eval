@@ -1,5 +1,6 @@
 import os
 import sys
+import wandb
 
 from ....embeddings import GENALMEmbeddingExtractor
 from ....components import SimpleSequence
@@ -21,6 +22,25 @@ if __name__ == "__main__":
     seed = 0
     device = "cuda"
 
+    wandb.init(
+        project="dart_eval_task4",
+        name="extract_embeddings_gena_lm",
+        entity="RNALM",
+        dir="outputs/wandb",
+        config={
+            "model_name": model_name,
+            "cell_line": cell_line,
+            "category": category,
+            "task": "task_4",
+            "approach": "extract_embeddings",
+            "batch_size": batch_size,
+            "num_workers": num_workers,
+            "seed": seed,
+            "device": device,
+            "chroms": chroms,
+        }
+    )
+    
     out_dir = os.path.join(root_output_dir, f"task_4_chromatin_activity/embeddings/{model_name}/")
     os.makedirs(out_dir, exist_ok=True)
     out_path = os.path.join(out_dir, f"{cell_line}_{category}.h5")
@@ -28,3 +48,5 @@ if __name__ == "__main__":
     dataset = SimpleSequence(genome_fa, elements_tsv, chroms, seed)
     extractor = GENALMEmbeddingExtractor(model_name, batch_size, num_workers, device)
     extractor.extract_embeddings(dataset, out_path, progress_bar=True)
+
+    wandb.finish()
