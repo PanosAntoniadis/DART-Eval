@@ -427,6 +427,14 @@ def train_predictor(train_dataset, val_dataset, model, num_epochs, out_dir, batc
             print(f"Epoch {epoch}: val_loss={val_loss}, val_pearson_all={val_pearson_all}, val_spearman_all={val_spearman_all}, val_pearson_peaks={val_pearson_peaks}, val_spearman_peaks={val_spearman_peaks}")
             f.write(f"{epoch}\t{val_loss}\t{val_pearson_all}\t{val_spearman_all}\t{val_pearson_peaks}\t{val_spearman_peaks}\n")
             f.flush()
+            
+            wandb.log({
+                "val_loss": val_loss,
+                "val_pearson_all": val_pearson_all,
+                "val_spearman_all": val_spearman_all,
+                "val_pearson_peaks": val_pearson_peaks,
+                "val_spearman_peaks": val_spearman_peaks,
+            })
 
             checkpoint_path = os.path.join(out_dir, f"checkpoint_{epoch}.pt")
             torch.save(model.state_dict(), checkpoint_path)

@@ -1,5 +1,6 @@
 import os
 import sys
+import wandb
 
 from torch.utils.data import DataLoader
 
@@ -57,6 +58,26 @@ if __name__ == "__main__":
         "chr22"
     ]
 
+    wandb.init(
+        project="dart_eval_task4",
+        name="train_probing_gena_lm",
+        entity="RNALM",
+        dir="outputs/wandb",
+        config={
+            "model_name": model_name,
+            "cell_line": cell_line,
+            "task": "task_4",
+            "approach": "train_probing",
+            "batch_size": batch_size,
+            "num_workers": num_workers,
+            "seed": seed,
+            "device": device,
+            "chroms_train": chroms_train,
+            "chroms_val": chroms_val,
+            "chroms_test": chroms_test,
+        }
+    )
+    
     input_channels = 1024
     hidden_channels = 32
     kernel_size = 8
@@ -79,3 +100,5 @@ if __name__ == "__main__":
 
     model = CNNEmbeddingsPredictor(input_channels, hidden_channels, kernel_size)
     train_predictor(train_dataset, val_dataset, model, num_epochs, out_dir, batch_size, lr, num_workers, prefetch_factor, device, progress_bar=True, resume_from=resume_checkpoint)
+
+    wandb.finish()
