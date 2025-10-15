@@ -91,8 +91,8 @@ if __name__ == "__main__":
         "K562": 4
     } 
 
-    train_dataset = PeaksEmbeddingsDataset(peaks_h5, elements_tsv, chroms_train, classes)
-    val_dataset = PeaksEmbeddingsDataset(peaks_h5, elements_tsv, chroms_val, classes)
+    train_dataset = PeaksEmbeddingsDataset(peaks_h5, elements_tsv, chroms_train, classes, cache_dir='/home/vqj407/workspace/')
+    val_dataset = PeaksEmbeddingsDataset(peaks_h5, elements_tsv, chroms_val, classes, cache_dir='/home/vqj407/workspace/')
 
     model = CNNEmbeddingsPredictor(input_channels, hidden_channels, kernel_size, out_channels=len(classes))
     train_peak_classifier(train_dataset, val_dataset, model, num_epochs, out_dir, batch_size, lr, num_workers, prefetch_factor, device, progress_bar=True, resume_from=resume_checkpoint)
