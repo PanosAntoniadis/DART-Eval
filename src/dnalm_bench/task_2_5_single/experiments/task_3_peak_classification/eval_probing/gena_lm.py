@@ -25,7 +25,7 @@ if __name__ == "__main__":
     
     wandb.init(
         project="dart_eval_task3",
-        name="probing_classification",
+        name="eval_probing_classification",
         entity="RNALM",
         dir="outputs/wandb",
         config={

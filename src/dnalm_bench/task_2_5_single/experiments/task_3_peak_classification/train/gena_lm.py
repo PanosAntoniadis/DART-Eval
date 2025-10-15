@@ -1,5 +1,6 @@
 import os
 import sys
+import wandb
 
 from torch.utils.data import DataLoader
 
@@ -20,6 +21,23 @@ if __name__ == "__main__":
     seed = 0
     device = "cuda"
 
+    wandb.init(
+        project="dart_eval_task3",
+        name="train_probing_classification",
+        entity="RNALM",
+        dir="outputs/wandb",
+        config={
+            "model_name": model_name,
+            "task": "task_3",
+            "approach": "train_probing",
+            "batch_size": batch_size,
+            "num_workers": num_workers,
+            "prefetch_factor": prefetch_factor,
+            "seed": seed,
+            "device": device,
+        }
+    )
+    
     chroms_train = [
         "chr1",
         "chr2",
@@ -78,3 +96,5 @@ if __name__ == "__main__":
 
     model = CNNEmbeddingsPredictor(input_channels, hidden_channels, kernel_size, out_channels=len(classes))
     train_peak_classifier(train_dataset, val_dataset, model, num_epochs, out_dir, batch_size, lr, num_workers, prefetch_factor, device, progress_bar=True, resume_from=resume_checkpoint)
+
+    wandb.finish()

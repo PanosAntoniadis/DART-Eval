@@ -4,6 +4,7 @@ import heapq
 import hashlib
 import warnings
 import json
+import wandb
 
 import numpy as np
 import torch
@@ -624,6 +625,11 @@ def train_peak_classifier(train_dataset, val_dataset, model, num_epochs, out_dir
 
             val_loss /= len(val_dataloader.dataset)
             val_acc /= len(val_dataloader.dataset)
+
+            wandb.log({
+                "val_loss": val_loss,
+                "val_acc": val_acc,
+            })
 
             print(f"Epoch {epoch}: val_loss={val_loss}, val_acc={val_acc}")
             f.write(f"{epoch}\t{val_loss}\t{val_acc}\n")
