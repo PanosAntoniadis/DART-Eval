@@ -274,7 +274,7 @@ class RNALMEmbeddingExtractor(EmbeddingExtractor, SimpleEmbeddingExtractor):
 
     @staticmethod
     def _offsets_to_indices(offsets, seqs):
-        slice_idx = [0, seqs.shape[1]-1]
+        slice_idx = [0, seqs.shape[1]]
         
         return np.array(slice_idx)
     
