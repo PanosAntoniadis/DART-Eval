@@ -71,7 +71,7 @@ if __name__ == "__main__":
         "chr22"
     ]
 
-    input_channels = 512
+    input_channels = 768
     hidden_channels = 32
     kernel_size = 8
 
