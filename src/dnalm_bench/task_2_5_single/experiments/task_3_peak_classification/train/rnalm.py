@@ -17,6 +17,7 @@ if __name__ == "__main__":
 
     batch_size = 1024
     num_workers = 0
+    resume_from = None
     prefetch_factor = None
     seed = 0
     device = "cuda"
@@ -35,6 +36,7 @@ if __name__ == "__main__":
             "prefetch_factor": prefetch_factor,
             "seed": seed,
             "device": device,
+            "resume_from": resume_from,
         }
     )
     
@@ -95,6 +97,6 @@ if __name__ == "__main__":
     val_dataset = PeaksEmbeddingsDataset(peaks_h5, elements_tsv, chroms_val, classes, cache_dir='/home/vqj407/workspace/')
 
     model = CNNSlicedEmbeddingsPredictor(input_channels, hidden_channels, kernel_size, out_channels=len(classes))
-    train_peak_classifier(train_dataset, val_dataset, model, num_epochs, out_dir, batch_size, lr, num_workers, prefetch_factor, device, progress_bar=True, resume_from=resume_checkpoint)
+    train_peak_classifier(train_dataset, val_dataset, model, num_epochs, out_dir, batch_size, lr, num_workers, prefetch_factor, device, progress_bar=True, resume_from=resume_checkpoint, resume_from=resume_from)
 
     wandb.finish()
