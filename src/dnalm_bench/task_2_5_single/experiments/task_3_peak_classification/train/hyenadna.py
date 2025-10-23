@@ -30,7 +30,7 @@ if __name__ == "__main__":
         config={
             "model_name": model_name,
             "task": "task_3",
-            "approach": "train_probing",
+            "approach": "probing",
             "batch_size": batch_size,
             "num_workers": num_workers,
             "prefetch_factor": prefetch_factor,
