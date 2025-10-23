@@ -83,7 +83,7 @@ if __name__ == "__main__":
         "K562": 4
     } 
 
-    test_dataset = PeaksEmbeddingsDataset(peaks_h5, elements_tsv, modes[eval_mode], classes)
+    test_dataset = PeaksEmbeddingsDataset(peaks_h5, elements_tsv, modes[eval_mode], classes, cache_dir='/home/vqj407/workspace/')
 
     model = CNNSlicedEmbeddingsPredictor(input_channels, hidden_channels, kernel_size, out_channels=len(classes))
     checkpoint_resume = torch.load(checkpoint_path)
