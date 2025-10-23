@@ -15,6 +15,9 @@ from pathlib import Path
 import yaml
 import hydra
 from rnalm.models import MaskedLM
+from pytorch_lightning.utilities.deepspeed import convert_zero_checkpoint_to_fp32_state_dict
+from deepspeed.runtime.fp16.loss_scaler import LossScaler
+from deepspeed.runtime.zero.config import ZeroStageEnum
 
 
 class SimpleEmbeddingExtractor:
@@ -234,7 +237,9 @@ class RNALMEmbeddingExtractor(EmbeddingExtractor, SimpleEmbeddingExtractor):
             # check if the converted checkpoint exists
             save_path = Path(checkpoint_path) / 'lightning_model.pt'
             if not save_path.exists():
-                raise FileNotFoundError(f"Checkpoint {save_path} not found")
+                print(f"Converting checkpoint to fp32 state dict and saving to {save_path}")
+                # convert the checkpoint to fp32 state dict
+                self.safe_convert_zero_checkpoint_to_fp32_state_dict(checkpoint_path, save_path)
             checkpoint_path = save_path
         print('LOAD MODEL----------------------------------------')
         pl_module = MaskedLM.load_from_checkpoint(
@@ -245,7 +250,10 @@ class RNALMEmbeddingExtractor(EmbeddingExtractor, SimpleEmbeddingExtractor):
         )
         self.model = pl_module.network
         
-
+    def safe_convert_zero_checkpoint_to_fp32_state_dict(self, checkpoint_dir, output_file, tag=None):
+        with torch.serialization.safe_globals([LossScaler, ZeroStageEnum]):
+            convert_zero_checkpoint_to_fp32_state_dict(checkpoint_dir, output_file, tag=tag)
+            
     def tokenize(self, seqs):
         seqs_str = onehot_to_chars(seqs)
         encoded = self.tokenizer(
