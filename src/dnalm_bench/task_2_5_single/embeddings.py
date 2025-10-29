@@ -210,6 +210,7 @@ class RNALMEmbeddingExtractor(EmbeddingExtractor, SimpleEmbeddingExtractor):
                         weights_only=False,
                         map_location="cpu",
                     )
+            self.metadata = torch.mean(self.metadata.last_hidden_state, dim=1)
 
         self.model.to(device)
         self.model.eval()
