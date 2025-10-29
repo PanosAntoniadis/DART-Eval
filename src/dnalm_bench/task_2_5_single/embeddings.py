@@ -201,9 +201,15 @@ class RNALMEmbeddingExtractor(EmbeddingExtractor, SimpleEmbeddingExtractor):
         if use_metadata is False:
             print('set use_metadata false')
             self.model.use_metadata = False
+            self.metadata = None
         if use_metadata is True:
             print('set use_metadata true')
             self.model.use_metadata = True
+            self.metadata = torch.load(
+                        "/tmp/vqj407/rnalm_erda/data/metadata/embedded_Llama-3.2-3B/empty_metadata.pt",
+                        weights_only=False,
+                        map_location="cpu",
+                    )
 
         self.model.to(device)
         self.model.eval()
@@ -274,6 +280,7 @@ class RNALMEmbeddingExtractor(EmbeddingExtractor, SimpleEmbeddingExtractor):
             torch_outs = self.model(
                 tokens,
                 masked_taxonomy=tax,
+                metadata=self.metadata,
             )
             embs = torch_outs.last_hidden_state
             if self.model.use_taxonomy:
