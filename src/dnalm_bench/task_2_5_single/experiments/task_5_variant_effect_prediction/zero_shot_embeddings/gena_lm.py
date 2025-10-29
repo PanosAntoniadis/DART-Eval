@@ -2,6 +2,7 @@ import os
 import sys
 import numpy as np
 import polars as pl
+import wandb
 
 from ....evaluators import GenaLMVariantEmbeddingEvaluator
 from ....components import VariantDataset
@@ -32,6 +33,22 @@ if __name__ == "__main__":
     allele1_embeddings_path = os.path.join(out_dir, f"{output_prefix}_allele1_embeddings.npy")
     allele2_embeddings_path = os.path.join(out_dir, f"{output_prefix}_allele2_embeddings.npy")
 
+    wandb.init(
+        project="dart_eval_task5",
+        name=f"zs_embedding_{output_prefix}",
+        entity="RNALM",
+        dir="outputs/wandb",
+        config={
+            "model_name": model_name,
+            "task": "task_5",
+            "approach": "zero_shot_embeddings",
+            "batch_size": batch_size,
+            "num_workers": num_workers,
+            "seed": seed,
+            "device": device,
+        }
+    )
+    
     dataset = VariantDataset(genome_fa, variants_bed, chroms, seed)
     evaluator = GenaLMVariantEmbeddingEvaluator(model_name, batch_size, num_workers, device)
 
@@ -46,5 +63,7 @@ if __name__ == "__main__":
     np.save(allele1_embeddings_path, allele1_embeddings)
     np.save(allele2_embeddings_path, allele2_embeddings)
 
+    scored_pd = scored_df.to_pandas()
+    wandb.log({"scored_table": wandb.Table(dataframe=scored_pd)})
 
-    
+    wandb.finish()
