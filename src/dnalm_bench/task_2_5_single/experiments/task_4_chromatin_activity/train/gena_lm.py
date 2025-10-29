@@ -60,7 +60,7 @@ if __name__ == "__main__":
 
     wandb.init(
         project="dart_eval_task4",
-        name="train_probing_gena_lm",
+        name=f"train_probing_{model_name}_{cell_line}",
         entity="RNALM",
         dir="outputs/wandb",
         config={
