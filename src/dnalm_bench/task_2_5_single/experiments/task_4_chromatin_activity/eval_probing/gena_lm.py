@@ -1,5 +1,6 @@
 import os
 import sys
+import wandb
 
 import torch
 import numpy as np
@@ -73,6 +74,26 @@ if __name__ == "__main__":
 
     model_dir = os.path.join(root_output_dir, f"task_4_chromatin_activity/supervised_models/probed/{model_name}/{cell_line}/v1")
 
+    wandb.init(
+        project="dart_eval_task4",
+        name=f"eval_probing_{model_name}_{cell_line}",
+        entity="RNALM",
+        dir="outputs/wandb",
+        config={
+            "model_name": model_name,
+            "cell_line": cell_line,
+            "task": "task_4",
+            "approach": "eval_probing",
+            "batch_size": batch_size,
+            "num_workers": num_workers,
+            "seed": seed,
+            "device": device,
+            "chroms_train": chroms_train,
+            "chroms_val": chroms_val,
+            "chroms_test": chroms_test,
+        }
+    )
+    
     train_log = f"{model_dir}/train.log"
     df = pd.read_csv(train_log, sep="\t")
     checkpoint_num = int(df["epoch"][np.argmin(df["val_loss"])])
@@ -96,3 +117,7 @@ if __name__ == "__main__":
     
     for k, v in metrics.items():
         print(f"{k}: {v}")
+    
+    wandb.log(metrics)
+    
+    wandb.finish()
