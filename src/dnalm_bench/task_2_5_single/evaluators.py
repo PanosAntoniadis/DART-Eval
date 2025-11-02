@@ -1023,16 +1023,16 @@ class RNALMVariantEmbeddingEvaluator(VariantEmbeddingEvaluator):
         with torch.serialization.safe_globals([LossScaler, ZeroStageEnum]):
             convert_zero_checkpoint_to_fp32_state_dict(checkpoint_dir, output_file, tag=tag)
             
-    def tokenize(self, seqs):
-        seqs_str = onehot_to_chars(seqs)
-        encoded = self.tokenizer(
-                    seqs_str,
-                    return_tensors="pt",
-                    padding=True,
-                )
-        tokens = encoded["input_ids"]
+    # def tokenize(self, seqs):
+    #     seqs_str = onehot_to_chars(seqs)
+    #     encoded = self.tokenizer(
+    #                 seqs_str,
+    #                 return_tensors="pt",
+    #                 padding=True,
+    #             )
+    #     tokens = encoded["input_ids"]
 
-        return tokens, None
+    #     return tokens, None
 
     def model_fwd(self, tokens):
         tax = None
