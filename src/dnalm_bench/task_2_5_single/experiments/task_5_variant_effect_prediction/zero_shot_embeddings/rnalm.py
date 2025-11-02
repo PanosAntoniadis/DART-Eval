@@ -4,17 +4,20 @@ import numpy as np
 import polars as pl
 import wandb
 
-from ....evaluators import GenaLMVariantEmbeddingEvaluator
+from ....evaluators import RNALMVariantEmbeddingEvaluator
 from ....components import VariantDataset
 
 root_output_dir = os.environ.get("DART_WORK_DIR", "")
 
 if __name__ == "__main__":
     dataset = sys.argv[1]
-
-    model_name = "gena-lm-bert-large-t2t"
-
-    batch_size = 256
+    model_name = "rnalm_144M_HM_MM"
+    output_dir = "/tmp/vqj407/rnalm_erda/gefion_output//outputs/mlm_track_metadata/runs/2025-06-29_21-09-26_144M_human_mouse_resume/"
+    checkpoint_path = "best"
+    use_metadata = False
+    tokenizer_path = "/home/vqj407/workspace/RNALM/rnalm/tokenizers/dna_tokenizer"
+    
+    batch_size = 512
     num_workers = 0
     seed = 0
     device = "cuda"
@@ -44,14 +47,16 @@ if __name__ == "__main__":
             "approach": "zero_shot_embeddings",
             "batch_size": batch_size,
             "num_workers": num_workers,
+            "output_dir": output_dir,
+            "checkpoint_path": checkpoint_path,
+            "use_metadata": use_metadata,
+            "tokenizer_path": tokenizer_path,
             "seed": seed,
             "device": device,
         }
     )
-    
     dataset = VariantDataset(genome_fa, variants_bed, chroms, seed)
-    evaluator = GenaLMVariantEmbeddingEvaluator(model_name, batch_size, num_workers, device)
-
+    evaluator = RNALMVariantEmbeddingEvaluator(output_dir, checkpoint_path, use_metadata, tokenizer_path, batch_size, num_workers, device)
     score_df, allele1_embeddings, allele2_embeddings = evaluator.evaluate(dataset, out_path, progress_bar=True)
 
     df = dataset.elements_df
@@ -59,10 +64,8 @@ if __name__ == "__main__":
     print(out_path)
     scored_df.write_csv(out_path, separator="\t")
 
-    # Save embeddings
-    np.save(allele1_embeddings_path, allele1_embeddings)
-    np.save(allele2_embeddings_path, allele2_embeddings)
 
+    # Log scored table
     scored_pd = scored_df.to_pandas()
     wandb.log({"scored_table": wandb.Table(dataframe=scored_pd)})
 
