@@ -14,7 +14,7 @@ if __name__ == "__main__":
 
     model_name = "gena-lm-bert-large-t2t"
 
-    batch_size = 512
+    batch_size = 256
     num_workers = 0
     seed = 0
     device = "cuda"

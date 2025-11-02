@@ -8,8 +8,8 @@ from ....components import SimpleSequence
 root_output_dir = os.environ.get("DART_WORK_DIR", "")
 
 if __name__ == "__main__":
-    model_name = "rnalm"
-    output_dir = "/tmp/vqj407/rnalm_erda/gefion_output/outputs/mlm_track_metadata/runs/2025-06-22_16-53-44_144M"
+    model_name = "rnalm_144M_HM_MM"
+    output_dir = "/tmp/vqj407/rnalm_erda/gefion_output//outputs/mlm_track_metadata/runs/2025-06-29_21-09-26_144M_human_mouse_resume/"
     checkpoint_path = "best"
     use_metadata = False
     tokenizer_path = "/home/vqj407/workspace/RNALM/rnalm/tokenizers/dna_tokenizer"
@@ -22,8 +22,8 @@ if __name__ == "__main__":
     else:
         elements_tsv = os.path.join(root_output_dir, f"task_4_chromatin_activity/processed_data/cell_line_expanded_peaks/{cell_line}_{category}.bed")
     chroms = None
-    batch_size = 512
-    num_workers = 0
+    batch_size = 64
+    num_workers = 4
     seed = 0
     device = "cuda"
     
