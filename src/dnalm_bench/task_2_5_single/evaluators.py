@@ -947,6 +947,15 @@ class NTVariantEmbeddingEvaluator(VariantEmbeddingEvaluator):
     
 class RNALMVariantEmbeddingEvaluator(VariantEmbeddingEvaluator):
     _hidden_states = "last"
+    
+    @property
+    def start_token(self):
+        return None
+    
+    @property
+    def end_token(self):
+        return 1
+    
     def __init__(self, output_dir, checkpoint_path, use_metadata, 
                  tokenizer_path, batch_size, num_workers, device):
         torch.set_float32_matmul_precision('high')
