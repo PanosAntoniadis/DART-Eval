@@ -24,18 +24,19 @@ if __name__ == "__main__":
 
     wandb.init(
         project="dart_eval_task3",
-        name="train_probing_classification_hyenadna",
+        name=f"train_probing_{model_name}",
         entity="RNALM",
         dir="outputs/wandb",
         config={
             "model_name": model_name,
             "task": "task_3",
-            "approach": "probing",
+            "approach": "train_probing",
             "batch_size": batch_size,
             "num_workers": num_workers,
             "prefetch_factor": prefetch_factor,
             "seed": seed,
             "device": device,
+            "resume_checkpoint": resume_checkpoint,
         }
     )
     
@@ -81,7 +82,7 @@ if __name__ == "__main__":
     lr = 2e-3
     num_epochs = 150
 
-    out_dir = os.path.join(root_output_dir, f"task_3_peak_classification/supervised_models/probed/{model_name}")
+    out_dir = os.path.join(root_output_dir, f"task_3_peak_classification/supervised_models/probed/{model_name}_{seed}")
     os.makedirs(out_dir, exist_ok=True)
 
     classes = {

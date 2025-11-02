@@ -81,7 +81,7 @@ if __name__ == "__main__":
     lr = 2e-3
     num_epochs = 150
 
-    out_dir = os.path.join(root_output_dir, f"task_3_peak_classification/supervised_models/probed/{model_name}")   
+    out_dir = os.path.join(root_output_dir, f"task_3_peak_classification/supervised_models/probed/{model_name}_{seed}")   
     os.makedirs(out_dir, exist_ok=True)
 
     classes = {
