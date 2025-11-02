@@ -1034,7 +1034,8 @@ class RNALMVariantEmbeddingEvaluator(VariantEmbeddingEvaluator):
 
     #     return tokens, None
 
-    def model_fwd(self, tokens):
+                
+    def embed(self, tokens, starts, ends, attention_mask, seq):
         tax = None
         if self.model.use_taxonomy:
             tax = self.taxonomy
@@ -1048,8 +1049,10 @@ class RNALMVariantEmbeddingEvaluator(VariantEmbeddingEvaluator):
             embs = torch_outs.last_hidden_state
             if self.model.use_taxonomy:
                 embs = embs[:, 1:, :] 
+            embs = embs.mean(dim=1).numpy(force=True)
         return embs
     
+
 
     
 class HDVariantEmbeddingEvaluator(VariantEmbeddingEvaluator):
