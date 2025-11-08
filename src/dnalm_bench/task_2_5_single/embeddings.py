@@ -207,7 +207,7 @@ class RNALMEmbeddingExtractor(EmbeddingExtractor, SimpleEmbeddingExtractor):
                         weights_only=False,
                         map_location="cpu",
                     )
-            self.metadata = torch.mean(self.metadata.last_hidden_state, dim=1).to(device)
+            self.metadata = torch.mean(self.metadata.last_hidden_state, dim=1).expand(batch_size, -1).to(device)
         
         if self.model.model.use_taxonomy:
             self.taxonomy = torch.tensor([2317, 2318, 2319, 2266, 2248, 2072, 2053, 1875]*batch_size).to(device)
