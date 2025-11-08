@@ -194,7 +194,7 @@ class RNALMEmbeddingExtractor(EmbeddingExtractor, SimpleEmbeddingExtractor):
         torch.set_float32_matmul_precision('high')
         model_name = f"rnalm/{model_name}"
         self.tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
-        self.model =  AutoModelForMaskedLM.from_pretrained(model_name, trust_remote_code=True)
+        self.model =  AutoModel.from_pretrained(model_name, trust_remote_code=True)
         self.metadata = None
         self.model.model.predict_tracks = False
         self.taxonomy = None
