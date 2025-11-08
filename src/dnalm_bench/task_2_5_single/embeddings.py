@@ -207,10 +207,10 @@ class RNALMEmbeddingExtractor(EmbeddingExtractor, SimpleEmbeddingExtractor):
                         weights_only=False,
                         map_location="cpu",
                     )
-            self.metadata = torch.mean(self.metadata.last_hidden_state, dim=1).expand(batch_size, -1).to(device)
+            self.metadata = torch.mean(self.metadata.last_hidden_state, dim=1).to(device)
         
         if self.model.model.use_taxonomy:
-            self.taxonomy = torch.tensor([2317, 2318, 2319, 2266, 2248, 2072, 2053, 1875]*batch_size).to(device)
+            self.taxonomy = torch.tensor([2317, 2318, 2319, 2266, 2248, 2072, 2053, 1875]).to(device)
 
         self.model.to(device)
         self.model.eval()
@@ -229,12 +229,13 @@ class RNALMEmbeddingExtractor(EmbeddingExtractor, SimpleEmbeddingExtractor):
         return tokens, None
 
     def model_fwd(self, tokens):
+        batch_size = tokens.shape[0]
         tokens = tokens.to(device=self.device)
         with torch.no_grad():
             torch_outs = self.model(
                 input_ids=tokens,
-                masked_taxonomy=self.taxonomy,
-                metadata=self.metadata,
+                masked_taxonomy=self.taxonomy.expand(batch_size, -1),
+                metadata=self.metadata.expand(batch_size, -1),
             )
             if self.use_track_embeddings is True:
                 embs = torch_outs.last_hidden_state_track

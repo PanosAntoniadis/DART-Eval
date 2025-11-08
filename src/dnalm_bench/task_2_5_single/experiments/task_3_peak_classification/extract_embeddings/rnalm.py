@@ -20,7 +20,7 @@ if __name__ == "__main__":
     
     wandb.init(
         project="dart_eval_task3",
-        name=f"embeddings_{model_name}",
+        name=f"embeddings_{model_name}_trackEmbeddings{use_track_embeddings}",
         entity="RNALM",
         dir="outputs/wandb",
         config={
@@ -36,7 +36,10 @@ if __name__ == "__main__":
         }
     )
 
-    out_path = os.path.join(root_output_dir,f"task_3_peak_classification/embeddings/{model_name}_trackEmbeddings{use_track_embeddings}.h5")
+    if use_track_embeddings is True:
+        out_path = os.path.join(root_output_dir,f"task_3_peak_classification/embeddings/{model_name}_trackEmbeddings.h5")
+    else:
+        out_path = os.path.join(root_output_dir,f"task_3_peak_classification/embeddings/{model_name}.h5")
 
     dataset = SimpleSequence(genome_fa, elements_tsv, chroms, seed)
     extractor = RNALMEmbeddingExtractor(model_name, use_track_embeddings, batch_size, num_workers, device)
