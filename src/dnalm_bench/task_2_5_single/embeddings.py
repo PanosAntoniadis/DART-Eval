@@ -231,11 +231,19 @@ class RNALMEmbeddingExtractor(EmbeddingExtractor, SimpleEmbeddingExtractor):
     def model_fwd(self, tokens):
         batch_size = tokens.shape[0]
         tokens = tokens.to(device=self.device)
+        if self.taxonomy is not None:
+            masked_taxonomy = self.taxonomy.expand(batch_size, -1)
+        else:
+            masked_taxonomy = None
+        if self.metadata is not None:
+            metadata = self.metadata.expand(batch_size, -1)
+        else:
+            metadata = None
         with torch.no_grad():
             torch_outs = self.model(
                 input_ids=tokens,
-                masked_taxonomy=self.taxonomy.expand(batch_size, -1),
-                metadata=self.metadata.expand(batch_size, -1),
+                masked_taxonomy=masked_taxonomy,
+                metadata=metadata,
             )
             if self.use_track_embeddings is True:
                 embs = torch_outs.last_hidden_state_track
