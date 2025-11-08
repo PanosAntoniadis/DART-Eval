@@ -198,6 +198,7 @@ class RNALMEmbeddingExtractor(EmbeddingExtractor, SimpleEmbeddingExtractor):
         self.metadata = None
         self.model.model.predict_tracks = False
         self.taxonomy = None
+        self.use_track_embeddings = use_track_embeddings
         if use_track_embeddings is True:
             print('set use_metadata true')
             self.model.model.predict_tracks = True
@@ -235,9 +236,12 @@ class RNALMEmbeddingExtractor(EmbeddingExtractor, SimpleEmbeddingExtractor):
                 masked_taxonomy=self.taxonomy,
                 metadata=self.metadata,
             )
-            embs = torch_outs.last_hidden_state
-            if self.model.model.use_taxonomy:
-                embs = embs[:, 1:, :] 
+            if self.use_track_embeddings is True:
+                embs = torch_outs.last_hidden_state_track
+            else:
+                embs = torch_outs.last_hidden_state
+                if self.model.model.use_taxonomy:
+                    embs = embs[:, 1:, :] 
         return embs
 
     @staticmethod
