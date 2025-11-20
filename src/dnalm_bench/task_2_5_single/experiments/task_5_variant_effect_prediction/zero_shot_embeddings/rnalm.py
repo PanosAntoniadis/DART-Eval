@@ -12,11 +12,7 @@ root_output_dir = os.environ.get("DART_WORK_DIR", "")
 if __name__ == "__main__":
     dataset = sys.argv[1]
     model_name = "rnalm_144M_HM_MM"
-    output_dir = "/tmp/vqj407/rnalm_erda/gefion_output//outputs/mlm_track_metadata/runs/2025-06-29_21-09-26_144M_human_mouse_resume/"
-    checkpoint_path = "best"
-    use_metadata = False
-    tokenizer_path = "/home/vqj407/workspace/RNALM/rnalm/tokenizers/dna_tokenizer"
-    
+    use_track_embeddings = False
     batch_size = 512
     num_workers = 0
     seed = 0
@@ -47,16 +43,12 @@ if __name__ == "__main__":
             "approach": "zero_shot_embeddings",
             "batch_size": batch_size,
             "num_workers": num_workers,
-            "output_dir": output_dir,
-            "checkpoint_path": checkpoint_path,
-            "use_metadata": use_metadata,
-            "tokenizer_path": tokenizer_path,
             "seed": seed,
             "device": device,
         }
     )
     dataset = VariantDataset(genome_fa, variants_bed, chroms, seed)
-    evaluator = RNALMVariantEmbeddingEvaluator(output_dir, checkpoint_path, use_metadata, tokenizer_path, batch_size, num_workers, device)
+    evaluator = RNALMVariantEmbeddingEvaluator(model_name, use_track_embeddings, batch_size, num_workers, device)
     score_df, allele1_embeddings, allele2_embeddings = evaluator.evaluate(dataset, out_path, progress_bar=True)
 
     df = dataset.elements_df

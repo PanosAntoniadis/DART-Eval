@@ -12,10 +12,7 @@ import polars as pl
 from pathlib import Path
 import yaml
 import hydra
-from rnalm.models import MaskedLM
-from pytorch_lightning.utilities.deepspeed import convert_zero_checkpoint_to_fp32_state_dict
-from deepspeed.runtime.fp16.loss_scaler import LossScaler
-from deepspeed.runtime.zero.config import ZeroStageEnum
+
 
 class LikelihoodEvaluator(metaclass=ABCMeta):
     def __init__(self, tokenizer, model, batch_size, num_workers, device):
@@ -956,99 +953,58 @@ class RNALMVariantEmbeddingEvaluator(VariantEmbeddingEvaluator):
     def end_token(self):
         return 1
     
-    def __init__(self, output_dir, checkpoint_path, use_metadata, 
-                 tokenizer_path, batch_size, num_workers, device):
+    def __init__(self, model_name, use_track_embeddings, batch_size, num_workers, device):
         torch.set_float32_matmul_precision('high')
-        self.load_model(output_dir, checkpoint_path)
-        if use_metadata is False:
-            print('set use_metadata false')
-            self.model.use_metadata = False
-            self.metadata = None
-        if use_metadata is True:
+        model_name = f"rnalm/{model_name}"
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
+        self.model =  AutoModel.from_pretrained(model_name, trust_remote_code=True)
+        self.metadata = None
+        self.model.model.predict_tracks = False
+        self.taxonomy = None
+        self.use_track_embeddings = use_track_embeddings
+        if use_track_embeddings is True:
             print('set use_metadata true')
-            self.model.use_metadata = True
+            self.model.model.predict_tracks = True
             self.metadata = torch.load(
                         "/tmp/vqj407/rnalm_erda/data/metadata/embedded_Llama-3.2-3B/empty_metadata.pt",
                         weights_only=False,
                         map_location="cpu",
                     )
-            self.metadata = torch.mean(self.metadata.last_hidden_state, dim=1)
+            self.metadata = torch.mean(self.metadata.last_hidden_state, dim=1).to(device)
+        
+        if self.model.model.use_taxonomy:
+            self.taxonomy = torch.tensor([2317, 2318, 2319, 2266, 2248, 2072, 2053, 1875]).to(device)
 
         self.model.to(device)
         self.model.eval()
-        self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)
-        self.taxonomy = torch.tensor([2317, 2318, 2319, 2266, 2248, 2072, 2053, 1875]*batch_size).to(device)
 
         super().__init__(self.tokenizer, self.model, batch_size, num_workers, device)
 
-    def load_model(self, output_dir, checkpoint_path):
-        config_path = Path(output_dir) / ".hydra/config.yaml"
-        with open(config_path) as f:
-            config = yaml.safe_load(f)
-            model_config = config["model"]["network"]
-
-        model_raw = hydra.utils.instantiate(model_config)
-        # check if checkpoint paths is dir
-        if checkpoint_path is None or checkpoint_path == 'last':
-            checkpoint_path = Path(output_dir) / "checkpoints/last.ckpt"
-            print('Loading last checkpoint')
-        elif checkpoint_path == "best":
-            # pick the one only starting with step_*
-            checkpoint_path = Path(output_dir) / "checkpoints"
-            checkpoint_path = sorted(
-                Path(checkpoint_path).glob("step_*.ckpt"),
-                key=lambda x: int(x.stem.split("_")[1]),
-            )[-1]
-            print(f"Loading best checkpoint {checkpoint_path}")
-        checkpoint = str(checkpoint_path).split("/")[-1]
-        print('Checkpoint loaded', checkpoint)
-        if Path(checkpoint_path).is_dir():
-            # check if the converted checkpoint exists
-            save_path = Path(checkpoint_path) / 'lightning_model.pt'
-            if not save_path.exists():
-                print(f"Converting checkpoint to fp32 state dict and saving to {save_path}")
-                # convert the checkpoint to fp32 state dict
-                self.safe_convert_zero_checkpoint_to_fp32_state_dict(checkpoint_path, save_path)
-            checkpoint_path = save_path
-        print('LOAD MODEL----------------------------------------')
-        pl_module = MaskedLM.load_from_checkpoint(
-            checkpoint_path,
-            network=model_raw,
-            mlm_criterion=None,
-            track_criterion=None,
-        )
-        self.model = pl_module.network
-        
-    def safe_convert_zero_checkpoint_to_fp32_state_dict(self, checkpoint_dir, output_file, tag=None):
-        with torch.serialization.safe_globals([LossScaler, ZeroStageEnum]):
-            convert_zero_checkpoint_to_fp32_state_dict(checkpoint_dir, output_file, tag=tag)
-            
-    # def tokenize(self, seqs):
-    #     seqs_str = onehot_to_chars(seqs)
-    #     encoded = self.tokenizer(
-    #                 seqs_str,
-    #                 return_tensors="pt",
-    #                 padding=True,
-    #             )
-    #     tokens = encoded["input_ids"]
-
-    #     return tokens, None
-
                 
     def embed(self, tokens, starts, ends, attention_mask, seq):
-        tax = None
-        if self.model.use_taxonomy:
-            tax = self.taxonomy
+        batch_size = tokens.shape[0]
         tokens = tokens.to(device=self.device)
+        if self.taxonomy is not None:
+            masked_taxonomy = self.taxonomy.expand(batch_size, -1)
+        else:
+            masked_taxonomy = None
+        
+        if self.metadata is not None:
+            metadata = self.metadata.expand(batch_size, -1)
+        else:
+            metadata = None
         with torch.no_grad():
             torch_outs = self.model(
-                tokens,
-                masked_taxonomy=tax,
-                metadata=self.metadata,
+                input_ids=tokens,
+                masked_taxonomy=masked_taxonomy,
+                metadata=metadata,
             )
-            embs = torch_outs.last_hidden_state
-            if self.model.use_taxonomy:
-                embs = embs[:, 1:, :] 
+            if self.use_track_embeddings is True:
+                embs = torch_outs.last_hidden_state_track
+            else:
+                embs = torch_outs.last_hidden_state
+                if self.model.model.use_taxonomy:
+                    embs = embs[:, 1:, :]
             embs = embs.mean(dim=1).numpy(force=True)
         return embs
     
