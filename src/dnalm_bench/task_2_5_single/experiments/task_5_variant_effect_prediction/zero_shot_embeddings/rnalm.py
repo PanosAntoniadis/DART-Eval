@@ -11,9 +11,9 @@ root_output_dir = os.environ.get("DART_WORK_DIR", "")
 
 if __name__ == "__main__":
     dataset = sys.argv[1]
-    model_name = "rnalm_144M_HM_MM"
+    model_name = "144M_H_MLM_last"
     use_track_embeddings = False
-    batch_size = 512
+    batch_size = 256
     num_workers = 0
     seed = 0
     device = "cuda"
