@@ -5,6 +5,7 @@ from sklearn.metrics import *
 from sklearn.decomposition import *
 from umap import UMAP
 import numpy as np
+import wandb
 
 np.random.seed(0)
 from .....embedding_clustering import EmbeddingCluster, load_embeddings_and_labels, load_embeddings_and_labels_subset
@@ -15,6 +16,7 @@ index_file = sys.argv[3]
 out_dir = sys.argv[4]
 
 os.makedirs(out_dir, exist_ok=True)
+
 
 cluster_metric = adjusted_mutual_info_score
 
@@ -28,6 +30,21 @@ print(n_clusters)
 
 print("Performing clustering")
 
+wandb.init(
+        project="dart_eval_task3",
+        name="clustering",
+        entity="RNALM",
+        dir="outputs/wandb",
+        config={
+            "embedding_file": embedding_file,
+            "task": "task_3",
+            "approach": "clustering",
+            "label_file": label_file,
+            "index_file": index_file,
+            "out_dir": out_dir,
+        }
+    )
+
 cluster_objs = [EmbeddingCluster(KMeans(n_clusters=n_clusters, random_state=it), embeddings, labels) for it in range(100)]
 scores = [emb_cluster.get_clustering_score(cluster_metric) for emb_cluster in cluster_objs]
 
@@ -35,7 +52,12 @@ scores_mean = np.mean(scores)
 scores_cint = np.max([np.abs(scores_mean - np.quantile(scores, 0.025)), np.abs(scores_mean - np.quantile(scores, 0.975))])
 print(scores_mean, scores_cint)
 
+wandb.log({
+    "scores_mean": scores_mean,
+    "scores_cint": scores_cint,
+})
+
 # print("Visualizing")
 cluster_objs[0].plot_embeddings(UMAP(), f"{out_dir}cluster_plot.png", categories)
 
-
+wandb.finish()

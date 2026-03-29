@@ -9,6 +9,10 @@ from scipy.spatial import distance
 from tqdm import tqdm
 from ..utils import NoModule, onehot_to_chars
 import polars as pl
+from pathlib import Path
+import yaml
+import hydra
+
 
 class LikelihoodEvaluator(metaclass=ABCMeta):
     def __init__(self, tokenizer, model, batch_size, num_workers, device):
@@ -938,7 +942,75 @@ class NTVariantEmbeddingEvaluator(VariantEmbeddingEvaluator):
     def end_token(self):
         return None
     
+class RNALMVariantEmbeddingEvaluator(VariantEmbeddingEvaluator):
+    _hidden_states = "last"
+    
+    @property
+    def start_token(self):
+        return None
+    
+    @property
+    def end_token(self):
+        return 1
+    
+    def __init__(self, model_name, use_track_embeddings, batch_size, num_workers, device):
+        torch.set_float32_matmul_precision('high')
+        model_name = f"rnalm/{model_name}"
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
+        self.model =  AutoModel.from_pretrained(model_name, trust_remote_code=True)
+        self.metadata = None
+        self.model.model.predict_tracks = False
+        self.taxonomy = None
+        self.use_track_embeddings = use_track_embeddings
+        if use_track_embeddings is True:
+            print('set use_metadata true')
+            self.model.model.predict_tracks = True
+            self.metadata = torch.load(
+                        "/tmp/vqj407/rnalm_erda/data/metadata/embedded_Llama-3.2-3B/empty_metadata.pt",
+                        weights_only=False,
+                        map_location="cpu",
+                    )
+            self.metadata = torch.mean(self.metadata.last_hidden_state, dim=1).to(device)
+        
+        if self.model.model.use_taxonomy:
+            self.taxonomy = torch.tensor([2317, 2318, 2319, 2266, 2248, 2072, 2053, 1875]).to(device)
 
+        self.model.to(device)
+        self.model.eval()
+
+        super().__init__(self.tokenizer, self.model, batch_size, num_workers, device)
+
+                
+    def embed(self, tokens, starts, ends, attention_mask, seq):
+        batch_size = tokens.shape[0]
+        tokens = tokens.to(device=self.device)
+        if self.taxonomy is not None:
+            masked_taxonomy = self.taxonomy.expand(batch_size, -1)
+        else:
+            masked_taxonomy = None
+        
+        if self.metadata is not None:
+            metadata = self.metadata.expand(batch_size, -1)
+        else:
+            metadata = None
+        with torch.no_grad():
+            torch_outs = self.model(
+                input_ids=tokens,
+                masked_taxonomy=masked_taxonomy,
+                metadata=metadata,
+            )
+            if self.use_track_embeddings is True:
+                embs = torch_outs.last_hidden_state_track
+            else:
+                embs = torch_outs.last_hidden_state
+                if self.model.model.use_taxonomy:
+                    embs = embs[:, 1:, :]
+            embs = embs.mean(dim=1).numpy(force=True)
+        return embs
+    
+
+
+    
 class HDVariantEmbeddingEvaluator(VariantEmbeddingEvaluator):
     _hidden_states = "all"
 

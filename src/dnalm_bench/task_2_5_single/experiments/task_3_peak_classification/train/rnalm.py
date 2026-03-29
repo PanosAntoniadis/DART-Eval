@@ -4,22 +4,21 @@ import wandb
 
 from torch.utils.data import DataLoader
 
-from ....training import PeaksEmbeddingsDataset, CNNSlicedEmbeddingsPredictor, train_predictor, train_peak_classifier
+from ....training import PeaksEmbeddingsDataset, CNNSlicedEmbeddingsPredictor, train_peak_classifier
 
 root_output_dir = os.environ.get("DART_WORK_DIR", "")
 
 if __name__ == "__main__":
     resume_checkpoint = int(sys.argv[1]) if len(sys.argv) > 1 else None
 
-    model_name = "hyenadna-large-1m-seqlen-hf"
-
+    model_name = "rnalm_144M_HM_MM"
     peaks_h5 = os.path.join(root_output_dir, f"task_3_peak_classification/embeddings/{model_name}.h5")
     elements_tsv = os.path.join(root_output_dir, "task_3_peak_classification/processed_inputs/peaks_by_cell_label_unique_dataloader_format.tsv")
 
-    batch_size = 512
+    batch_size = 1024
     num_workers = 0
     prefetch_factor = None
-    seed = 100
+    seed = 0
     device = "cuda"
 
     wandb.init(
@@ -73,16 +72,16 @@ if __name__ == "__main__":
         "chr22"
     ]
 
-    input_channels = 256
+    input_channels = 768
     hidden_channels = 32
     kernel_size = 8
 
     crop = 557
-    
+
     lr = 2e-3
     num_epochs = 150
 
-    out_dir = os.path.join(root_output_dir, f"task_3_peak_classification/supervised_models/probed/{model_name}_{seed}")
+    out_dir = os.path.join(root_output_dir, f"task_3_peak_classification/supervised_models/probed/{model_name}_{seed}")   
     os.makedirs(out_dir, exist_ok=True)
 
     classes = {
@@ -93,8 +92,8 @@ if __name__ == "__main__":
         "K562": 4
     } 
 
-    train_dataset = PeaksEmbeddingsDataset(peaks_h5, elements_tsv, chroms_train, classes)
-    val_dataset = PeaksEmbeddingsDataset(peaks_h5, elements_tsv, chroms_val, classes)
+    train_dataset = PeaksEmbeddingsDataset(peaks_h5, elements_tsv, chroms_train, classes,)
+    val_dataset = PeaksEmbeddingsDataset(peaks_h5, elements_tsv, chroms_val, classes,)
 
     model = CNNSlicedEmbeddingsPredictor(input_channels, hidden_channels, kernel_size, out_channels=len(classes))
     train_peak_classifier(train_dataset, val_dataset, model, num_epochs, out_dir, batch_size, lr, num_workers, prefetch_factor, device, progress_bar=True, resume_from=resume_checkpoint)

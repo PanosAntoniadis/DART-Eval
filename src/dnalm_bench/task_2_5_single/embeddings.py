@@ -9,8 +9,10 @@ from transformers import AutoTokenizer, AutoModelForMaskedLM, AutoModel, AutoMod
 from scipy.stats import wilcoxon
 from tqdm import tqdm
 import h5py
-from ..embeddings import HFEmbeddingExtractor, SequenceBaselineEmbeddingExtractor
+from ..embeddings import HFEmbeddingExtractor, SequenceBaselineEmbeddingExtractor, EmbeddingExtractor
 from ..utils import onehot_to_chars, NoModule
+from pathlib import Path
+from transformers import AutoModel, AutoTokenizer
 
 
 
@@ -184,6 +186,79 @@ class NucleotideTransformerEmbeddingExtractor(HFEmbeddingExtractor, SimpleEmbedd
 
         return inds
 
+
+class RNALMEmbeddingExtractor(EmbeddingExtractor, SimpleEmbeddingExtractor):
+    _idx_mode = "fixed"
+    
+    def __init__(self, model_name, use_track_embeddings, batch_size, num_workers, device):
+        torch.set_float32_matmul_precision('high')
+        model_name = f"rnalm/{model_name}"
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
+        self.model =  AutoModel.from_pretrained(model_name, trust_remote_code=True)
+        self.metadata = None
+        self.model.model.predict_tracks = False
+        self.taxonomy = None
+        self.use_track_embeddings = use_track_embeddings
+        if use_track_embeddings is True:
+            print('set use_metadata true')
+            self.model.model.predict_tracks = True
+            self.metadata = torch.load(
+                        "/tmp/vqj407/rnalm_erda/data/metadata/embedded_Llama-3.2-3B/empty_metadata.pt",
+                        weights_only=False,
+                        map_location="cpu",
+                    )
+            self.metadata = torch.mean(self.metadata.last_hidden_state, dim=1).to(device)
+        
+        if self.model.model.use_taxonomy:
+            self.taxonomy = torch.tensor([2317, 2318, 2319, 2266, 2248, 2072, 2053, 1875]).to(device)
+
+        self.model.to(device)
+        self.model.eval()
+
+        super().__init__(batch_size, num_workers, device)
+            
+    def tokenize(self, seqs):
+        seqs_str = onehot_to_chars(seqs)
+        encoded = self.tokenizer(
+                    seqs_str,
+                    return_tensors="pt",
+                    padding=True,
+                )
+        tokens = encoded["input_ids"]
+
+        return tokens, None
+
+    def model_fwd(self, tokens):
+        batch_size = tokens.shape[0]
+        tokens = tokens.to(device=self.device)
+        if self.taxonomy is not None:
+            masked_taxonomy = self.taxonomy.expand(batch_size, -1)
+        else:
+            masked_taxonomy = None
+        if self.metadata is not None:
+            metadata = self.metadata.expand(batch_size, -1)
+        else:
+            metadata = None
+        with torch.no_grad():
+            torch_outs = self.model(
+                input_ids=tokens,
+                masked_taxonomy=masked_taxonomy,
+                metadata=metadata,
+            )
+            if self.use_track_embeddings is True:
+                embs = torch_outs.last_hidden_state_track
+            else:
+                embs = torch_outs.last_hidden_state
+                if self.model.model.use_taxonomy:
+                    embs = embs[:, 1:, :] 
+        return embs
+
+    @staticmethod
+    def _offsets_to_indices(offsets, seqs):
+        slice_idx = [0, seqs.shape[1]]
+        
+        return np.array(slice_idx)
+    
 class HyenaDNAEmbeddingExtractor(HFEmbeddingExtractor, SimpleEmbeddingExtractor):
     _idx_mode = "fixed"
 

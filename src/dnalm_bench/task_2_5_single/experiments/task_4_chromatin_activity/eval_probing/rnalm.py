@@ -15,7 +15,7 @@ if __name__ == "__main__":
     cell_line = sys.argv[1] #cell line name
     eval_mode = sys.argv[2] if len(sys.argv) > 2 else "test"
 
-    model_name = "gena-lm-bert-large-t2t"
+    model_name = "rnalm_144M_HM_MM"
 
     peaks_h5 = os.path.join(root_output_dir, f"task_4_chromatin_activity/embeddings/{model_name}/{cell_line}_peaks.h5")
     idr_h5 = os.path.join(root_output_dir, f"task_4_chromatin_activity/embeddings/{model_name}/{cell_line}_idr.h5")

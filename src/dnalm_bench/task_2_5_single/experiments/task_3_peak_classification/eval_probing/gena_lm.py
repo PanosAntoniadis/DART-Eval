@@ -4,6 +4,7 @@ import sys
 import torch
 import pandas as pd
 import numpy as np
+import wandb
 
 from ....training import PeaksEmbeddingsDataset, CNNEmbeddingsPredictor, eval_peak_classifier
 
@@ -21,6 +22,23 @@ if __name__ == "__main__":
     prefetch_factor = None
     seed = 0
     device = "cuda"
+    
+    wandb.init(
+        project="dart_eval_task3",
+        name="eval_probing_gena",
+        entity="RNALM",
+        dir="outputs/wandb",
+        config={
+            "model_name": model_name,
+            "task": "task_3",
+            "approach": "probing",
+            "batch_size": batch_size,
+            "num_workers": num_workers,
+            "prefetch_factor": prefetch_factor,
+            "seed": seed,
+            "device": device,
+        }
+    )
 
     chroms_train = [
         "chr1",
@@ -94,3 +112,7 @@ if __name__ == "__main__":
     
     for k, v in metrics.items():
         print(f"{k}: {v}")
+    
+    wandb.log(metrics)
+    
+    wandb.finish()

@@ -4,16 +4,15 @@ import numpy as np
 import polars as pl
 import wandb
 
-from ....evaluators import GenaLMVariantEmbeddingEvaluator
+from ....evaluators import RNALMVariantEmbeddingEvaluator
 from ....components import VariantDataset
 
 root_output_dir = os.environ.get("DART_WORK_DIR", "")
 
 if __name__ == "__main__":
     dataset = sys.argv[1]
-
-    model_name = "gena-lm-bert-large-t2t"
-
+    model_name = "144M_H_MLM_last"
+    use_track_embeddings = False
     batch_size = 256
     num_workers = 0
     seed = 0
@@ -48,10 +47,8 @@ if __name__ == "__main__":
             "device": device,
         }
     )
-    
     dataset = VariantDataset(genome_fa, variants_bed, chroms, seed)
-    evaluator = GenaLMVariantEmbeddingEvaluator(model_name, batch_size, num_workers, device)
-
+    evaluator = RNALMVariantEmbeddingEvaluator(model_name, use_track_embeddings, batch_size, num_workers, device)
     score_df, allele1_embeddings, allele2_embeddings = evaluator.evaluate(dataset, out_path, progress_bar=True)
 
     df = dataset.elements_df
@@ -59,10 +56,8 @@ if __name__ == "__main__":
     print(out_path)
     scored_df.write_csv(out_path, separator="\t")
 
-    # Save embeddings
-    np.save(allele1_embeddings_path, allele1_embeddings)
-    np.save(allele2_embeddings_path, allele2_embeddings)
 
+    # Log scored table
     scored_pd = scored_df.to_pandas()
     wandb.log({"scored_table": wandb.Table(dataframe=scored_pd)})
 
